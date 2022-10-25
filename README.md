@@ -1,6 +1,8 @@
 **S-ADB**
+------------
 Author: mav1 aka krakodjaba aka staff
 Author TG: @mavijj / @mav1_notes
+------------
 Description:
 - Console shell for Android Debug Bridges.
 - More Functionality and more speedy.
