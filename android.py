@@ -1,35 +1,36 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+import threading
 import COLORS
+import banner
 import os
 import requests
 import time as t
 import subprocess
 import webbrowser
 import datetime
+import re
 
 
-page_1 = f'''
-        
- {COLORS.REDL}[ {COLORS.FIOL}1{COLORS.REDL}  ] {COLORS.OKNL} Devices List                        {COLORS.REDL}[ {COLORS.FIOL}16{COLORS.REDL} ] {COLORS.OKNL} Open location on Google Earth
- {COLORS.REDL}[ {COLORS.FIOL}2{COLORS.REDL}  ] {COLORS.OKNL} Disconnect all devices              {COLORS.REDL}[ {COLORS.FIOL}17{COLORS.REDL} ] {COLORS.OKNL} Show info of device   
- {COLORS.REDL}[ {COLORS.FIOL}3{COLORS.REDL}  ] {COLORS.OKNL} Connect new device over tcp         {COLORS.REDL}[ {COLORS.FIOL}18{COLORS.REDL} ] {COLORS.OKNL} Show Mac/Inet
- {COLORS.REDL}[ {COLORS.FIOL}4{COLORS.REDL}  ] {COLORS.OKNL} Shell                               {COLORS.REDL}[ {COLORS.FIOL}19{COLORS.REDL} ] {COLORS.OKNL} unzip apk from app
- {COLORS.REDL}[ {COLORS.FIOL}5{COLORS.REDL}  ] {COLORS.OKNL} Installing Apk        {COLORS.OKNL}              {COLORS.REDL}[ {COLORS.FIOL}20{COLORS.REDL} ]{COLORS.OKNL}  Get Battery Status
- {COLORS.REDL}[ {COLORS.FIOL}6{COLORS.REDL}  ] {COLORS.OKNL} Record screen                       {COLORS.REDL}[ {COLORS.FIOL}21{COLORS.REDL} ] {COLORS.OKNL} Get Network Status
- {COLORS.REDL}[ {COLORS.FIOL}7{COLORS.REDL}  ] {COLORS.OKNL} Take a screenshot                   {COLORS.REDL}[ {COLORS.FIOL}22{COLORS.REDL} ] {COLORS.OKNL} Swith On / Off [ Wi-Fi ]
- {COLORS.REDL}[ {COLORS.FIOL}8{COLORS.REDL}  ] {COLORS.OKNL} Restart ADB Server                  {COLORS.REDL}[ {COLORS.FIOL}23{COLORS.REDL} ] {COLORS.OKNL} Delete device passwords
- {COLORS.REDL}[ {COLORS.FIOL}9{COLORS.REDL}  ] {COLORS.OKNL} Uploading files                     {COLORS.REDL}[ {COLORS.FIOL}24{COLORS.REDL} ] {COLORS.OKNL} Keyevent
- {COLORS.REDL}[ {COLORS.FIOL}10{COLORS.REDL} ] {COLORS.OKNL} Restart devcie                      {COLORS.REDL}[ {COLORS.FIOL}25{COLORS.REDL} ] {COLORS.OKNL} Get last activity(Logs)  
- {COLORS.REDL}[ {COLORS.FIOL}11{COLORS.REDL} ] {COLORS.OKNL} Delete app                          {COLORS.REDL}[ {COLORS.FIOL}26{COLORS.REDL} ] {COLORS.OKNL} Mass ADB connections  
- {COLORS.REDL}[ {COLORS.FIOL}12{COLORS.REDL} ] {COLORS.OKNL} Show device journal                 {COLORS.REDL}[ {COLORS.FIOL}27{COLORS.REDL} ] {COLORS.OKNL} Instructions of ADB
- {COLORS.REDL}[ {COLORS.FIOL}13{COLORS.REDL} ] {COLORS.OKNL} Dump System Info                    {COLORS.REDL}[ {COLORS.FIOL}28{COLORS.REDL} ] {COLORS.OKNL} Grab wpa_supplicant
- {COLORS.REDL}[ {COLORS.FIOL}14{COLORS.REDL} ] {COLORS.OKNL} List of all apps                    {COLORS.REDL}[ {COLORS.FIOL}29{COLORS.REDL} ] {COLORS.OKNL} Port Forwarding
- {COLORS.REDL}[ {COLORS.FIOL}15{COLORS.REDL} ] {COLORS.OKNL} Star Apps                           {COLORS.REDL}[ {COLORS.FIOL}30{COLORS.REDL} ] {COLORS.OKNL} Take a Photo
- {COLORS.REDL}[ {COLORS.FIOL}31{COLORS.REDL} ] {COLORS.OKNL} Reconnect offline devices           {COLORS.REDL}[ {COLORS.FIOL}32{COLORS.REDL} ] {COLORS.OKNL} connect over usb emu
- {COLORS.REDL}[ {COLORS.FIOL}33{COLORS.REDL} ] {COLORS.OKNL} Calling Menu                        {COLORS.REDL}[ {COLORS.FIOL}34{COLORS.REDL} ] {COLORS.OKNL} Message Sending           
+page_1 = f'''                    {COLORS.REDL}[ {COLORS.FIOL}1{COLORS.REDL}  ] {COLORS.OKNL} Devices List                        {COLORS.REDL}[ {COLORS.FIOL}16{COLORS.REDL} ] {COLORS.OKNL} Open location on Google Earth
+                    {COLORS.REDL}[ {COLORS.FIOL}2{COLORS.REDL}  ] {COLORS.OKNL} Disconnect all devices              {COLORS.REDL}[ {COLORS.FIOL}17{COLORS.REDL} ] {COLORS.OKNL} Show info of device   
+                    {COLORS.REDL}[ {COLORS.FIOL}3{COLORS.REDL}  ] {COLORS.OKNL} Connect new device over tcp         {COLORS.REDL}[ {COLORS.FIOL}18{COLORS.REDL} ] {COLORS.OKNL} Show Mac/Inet
+                    {COLORS.REDL}[ {COLORS.FIOL}4{COLORS.REDL}  ] {COLORS.OKNL} Shell                               {COLORS.REDL}[ {COLORS.FIOL}19{COLORS.REDL} ] {COLORS.OKNL} unzip apk from app
+                    {COLORS.REDL}[ {COLORS.FIOL}5{COLORS.REDL}  ] {COLORS.OKNL} Installing Apk        {COLORS.OKNL}              {COLORS.REDL}[ {COLORS.FIOL}20{COLORS.REDL} ]{COLORS.OKNL}  Get Battery Status
+                    {COLORS.REDL}[ {COLORS.FIOL}6{COLORS.REDL}  ] {COLORS.OKNL} Record screen                       {COLORS.REDL}[ {COLORS.FIOL}21{COLORS.REDL} ] {COLORS.OKNL} Get Network Status
+                    {COLORS.REDL}[ {COLORS.FIOL}7{COLORS.REDL}  ] {COLORS.OKNL} Take a screenshot                   {COLORS.REDL}[ {COLORS.FIOL}22{COLORS.REDL} ] {COLORS.OKNL} Swith On / Off [ Wi-Fi ]
+                    {COLORS.REDL}[ {COLORS.FIOL}8{COLORS.REDL}  ] {COLORS.OKNL} Restart ADB Server                  {COLORS.REDL}[ {COLORS.FIOL}23{COLORS.REDL} ] {COLORS.OKNL} Delete device passwords
+                    {COLORS.REDL}[ {COLORS.FIOL}9{COLORS.REDL}  ] {COLORS.OKNL} Uploading files                     {COLORS.REDL}[ {COLORS.FIOL}24{COLORS.REDL} ] {COLORS.OKNL} Keyevent
+                    {COLORS.REDL}[ {COLORS.FIOL}10{COLORS.REDL} ] {COLORS.OKNL} Restart devcie                      {COLORS.REDL}[ {COLORS.FIOL}25{COLORS.REDL} ] {COLORS.OKNL} Get last activity(Logs)  
+                    {COLORS.REDL}[ {COLORS.FIOL}11{COLORS.REDL} ] {COLORS.OKNL} Delete app                          {COLORS.REDL}[ {COLORS.FIOL}26{COLORS.REDL} ] {COLORS.OKNL} Mass ADB connections  
+                    {COLORS.REDL}[ {COLORS.FIOL}12{COLORS.REDL} ] {COLORS.OKNL} Show device journal                 {COLORS.REDL}[ {COLORS.FIOL}27{COLORS.REDL} ] {COLORS.OKNL} Instructions of ADB
+                    {COLORS.REDL}[ {COLORS.FIOL}13{COLORS.REDL} ] {COLORS.OKNL} Dump System Info                    {COLORS.REDL}[ {COLORS.FIOL}28{COLORS.REDL} ] {COLORS.OKNL} Grab wpa_supplicant
+                    {COLORS.REDL}[ {COLORS.FIOL}14{COLORS.REDL} ] {COLORS.OKNL} List of all apps                    {COLORS.REDL}[ {COLORS.FIOL}29{COLORS.REDL} ] {COLORS.OKNL} Port Forwarding
+                    {COLORS.REDL}[ {COLORS.FIOL}15{COLORS.REDL} ] {COLORS.OKNL} Star Apps                           {COLORS.REDL}[ {COLORS.FIOL}30{COLORS.REDL} ] {COLORS.OKNL} Take a Photo
+                    {COLORS.REDL}[ {COLORS.FIOL}31{COLORS.REDL} ] {COLORS.OKNL} Reconnect offline devices           {COLORS.REDL}[ {COLORS.FIOL}32{COLORS.REDL} ] {COLORS.OKNL} connect over usb emu
+                    {COLORS.REDL}[ {COLORS.FIOL}33{COLORS.REDL} ] {COLORS.OKNL} Calling Menu                        {COLORS.REDL}[ {COLORS.FIOL}34{COLORS.REDL} ] {COLORS.OKNL} Message Sending           
 
- {COLORS.REDL}[ {COLORS.FIOL}exit{COLORS.REDL} ] {COLORS.OKNL} Exit {COLORS.FIOL}               {COLORS.REDL}[ {COLORS.FIOL}66{COLORS.REDL} ]{COLORS.OKNL} Очистить консоль                   {COLORS.REDL}[ {COLORS.FIOL}77{COLORS.REDL} ]{COLORS.OKNL} Отключить сервер
+             {COLORS.REDL}[ {COLORS.FIOL}0{COLORS.REDL} ] {COLORS.OKNL} Exit {COLORS.FIOL}               {COLORS.REDL}[ {COLORS.FIOL}66{COLORS.REDL} ]{COLORS.OKNL} Clear Console               {COLORS.REDL}[ {COLORS.FIOL}77{COLORS.REDL} ]{COLORS.OKNL} Disable Server
 
 '''
 def changemac():
@@ -47,8 +48,50 @@ def make_tmp(ip):
     title = title.decode()
     if "exists" in title:
         print(' Folder exist. Good boyy ghe-ge\n')
-    #else:
-     #   print(f' {title}')
+
+
+def conn(ip_address):
+    IP_ADDR = ip_address.split(":")[0]
+    IP_PORT = ip_address.split(":")[1]
+    #subprocess.call(f" adb connect {IP_ADDR}:{IP_PORT}", shell=True)
+    pipe = subprocess.Popen(["adb", "connect", f"{IP_ADDR}:{IP_PORT}"], stdout=subprocess.PIPE)
+    title, error = pipe.communicate()
+    title = title.decode()
+    
+    if 'connected' in title:
+        print(f' {COLORS.FIOL}{title}')
+
+
+def score_board():
+    alld = 0
+    actived = 0
+    pipe = subprocess.Popen(["adb", "devices", '-l'], stdout=subprocess.PIPE)
+    title, error = pipe.communicate()
+    title = title.decode()
+    if len(title) <= 26:
+        actived = 0
+    else:
+        devices = str(title).split("\n")
+        for i, device in enumerate(devices):
+            if ' device ' in device and 'List of devices attached' not in device and 'offline' not in device:
+                actived += 1
+            
+        if len(title) <= 26:
+            alld = 0
+        else:
+            devices = str(title).split("\n")
+            for i, device in enumerate(devices):
+                if 'List of devices attached' in device:
+                    continue
+                if 'List of devices attached' not in device and device != '':
+                    alld +=1
+    scoreboard = f"""                    ___________________________
+                    |Active Devices: {actived}        |
+                    |                         |
+                    |All Devices: {alld}           |
+                    |-------------------------|    """
+    print(scoreboard)
+
 def android_debug():
     import os
 
@@ -57,12 +100,15 @@ def android_debug():
     ip = None
 
     os.system('clear')
-    print(f"\n{COLORS.WHSL}                             Start Android Debug Bridge server\n")
+    print(banner.banner)
+    print(f"\n{COLORS.WHSL}                                    Starting Android Debug Bridge shell...\n")
     print(f"\n{COLORS.REDL} Warning! Use proxy for connection to Devices and don't forget to change MacAddress.\n{COLORS.REDL}")
     changemac()
-    t.sleep(2)
+    t.sleep(1)
     subprocess.call("adb start-server >> /dev/null", shell=True)
     os.system('clear')
+    print(banner.banner)
+    score_board()
     print(page_1)
 
     while True:
@@ -73,43 +119,72 @@ def android_debug():
             return
 
         if option == '1':
-            #subprocess.call("adb devices -l", shell=True)
-            pipe = subprocess.Popen(["adb", "devices", '-l'], stdout=subprocess.PIPE)
+            print(f"\n{COLORS.FIOL} [1]{COLORS.OKNL} Live Devices\n{COLORS.FIOL} [2]{COLORS.OKNL} All Devices\n{COLORS.ENDL}")
+            option_two = input(
+                f"{COLORS.FIOL} └──> {COLORS.WHSL}{username}@adb@{str(ip).replace('None','')} ──>{COLORS.FIOL} Just Enter Function Number: {COLORS.WHSL}")
+            if option_two == '1':
+                pipe = subprocess.Popen(["adb", "devices", '-l'], stdout=subprocess.PIPE)
+                title, error = pipe.communicate()
+                title = title.decode()
+                if len(title) <= 26:
+                    print(f"\n{COLORS.REDL} You are not connect to device.\n")
+                else:
+                    devices = str(title).split("\n")
+                    for i, device in enumerate(devices):
+                        if 'List of devices attached' in device:
+                            print(f'      {COLORS.GNSL}List of devices attached{COLORS.ENDL}')
+                        if ' device ' in device and 'List of devices attached' not in device and 'offline' not in device:
+                            print(f'{COLORS.FIOL} [{i}]  {COLORS.OKNL} {device}{COLORS.ENDL}')
+            elif option_two == '2':
+                pipe = subprocess.Popen(["adb", "devices", '-l'], stdout=subprocess.PIPE)
+                title, error = pipe.communicate()
+                title = title.decode()
+                if len(title) <= 26:
+                    print(f"\n{COLORS.REDL} You are not connect to device.\n")
+                else:
+                    devices = str(title).split("\n")
+                    for i, device in enumerate(devices):
+                        if 'List of devices attached' in device:
+                            print(f'      {COLORS.GNSL}List of devices attached{COLORS.ENDL}')
+                        if 'List of devices attached' not in device and device != '':
+                            print(f'{COLORS.FIOL} [{i}] {COLORS.OKNL} {device}{COLORS.ENDL}')
+        elif option == '2':
+            pipe = subprocess.Popen(["adb", "disconnect"], stdout=subprocess.PIPE)
             title, error = pipe.communicate()
             title = title.decode()
-            if len(title) <= 26:
-                print(f"\n{COLORS.REDL} You are not connect to device.\n")
-            else:
-                print(title)
-        elif option == '2':
-            if not ip:
-                print(f"\n{COLORS.REDL} You are not connect to device.\n")
-            else:
-                pipe = subprocess.Popen(["adb", "disconnect"], stdout=subprocess.PIPE)
-                title, error = pipe.communicate()
-                title = title.decode()
-                print(title)
-                ip = None
+            print(title)
+            ip = None
 
         elif option == '3':
-            print(f"\n Connecting to device.\n")
-            try:
-                ip = input(f" Ip device{COLORS.GNSL}{COLORS.ENDL}: ")
-                port_device = input(f" Port device{COLORS.GNSL}{COLORS.ENDL}: ")
-                subprocess.call(f"adb tcpip '{port_device}' >> /dev/null", shell=True)
-                #con = subprocess.call(f"adb connect {ip}:{port_device}", stdout=subprocess.PIPE, shell=True)
-                pipe = subprocess.Popen(["adb", "connect", f'{ip}:{port_device}'], stdout=subprocess.PIPE)
-                title, error = pipe.communicate()
-                title = title.decode()
-                if 'failed' in title:
-                    ip = ''
-                    print(f'{COLORS.REDL} failed to connect\n{COLORS.ENDL}')
-                else:
-                    print(f'{COLORS.WHSL} [+]{title}')
+            print(f"\n [1] Connect with TCP/IP\n [2] Connect to active devices\n")
+            option_two = input(f"{COLORS.FIOL} └──> {COLORS.WHSL}{username}@adb@{str(ip).replace('None','')} ──>{COLORS.FIOL} Just Enter Function Number: {COLORS.WHSL}")
+            if option_two == '1':
+                try:
+                    ip = input(f" Ip device{COLORS.GNSL}{COLORS.ENDL}: ")
+                    port_device = input(f" Port device{COLORS.GNSL}{COLORS.ENDL}: ")
+                    ipaddr = f'{ip}:{port_device}'
+                    conn(ipaddr)
                     make_tmp(ip)
-            except KeyboardInterrupt:
-                continue
-
+                except KeyboardInterrupt:
+                    continue
+            elif option_two == '2':
+               pipe = subprocess.Popen(["adb", "devices", '-l'], stdout=subprocess.PIPE)
+               title, error = pipe.communicate()
+               title = title.decode()
+               if len(title) <= 26:
+                   print(f"\n{COLORS.REDL} You are not connect to device.\n")
+               else:
+                   devices = str(title).split("\n")
+                   for i, device in enumerate(devices):
+                       if 'List of devices attached' in device:
+                           print(f'      {COLORS.GNSL}List of devices attached{COLORS.ENDL}')
+                       if ' device ' in device and 'List of devices attached' not in device and 'offline' not in device:
+                           print(f'{COLORS.FIOL} [{i}]  {COLORS.OKNL} {device}{COLORS.ENDL}')
+               connect_to = input(" Connect to: ")
+               for i, device in enumerate(devices):
+                    if ' device ' in device and 'List of devices attached' not in device and 'offline' not in device:
+                        if int(i) == int(connect_to):
+                            ip = str(device).split(":")[0]
         elif option == '4':
             print(f"\n Starting shell to device.\n")
             if not ip:
@@ -150,10 +225,12 @@ def android_debug():
                     print(f" Sucessfully saved.")
                     os.system(f'open {local_path_record}')
                     t.sleep(2)
+                    score_board()
                     print(page_1)
 
                 except KeyboardInterrupt:
                     os.system('clear')
+                    score_board()
                     print(page_1)
                     continue
 
@@ -179,11 +256,12 @@ def android_debug():
                     print(f" {COLORS.GNSL} Screenshot {COLORS.WHSL} Successfully Downloaded.")
                     os.system(f'open {path_to_file}')
                     t.sleep(2)
+                    score_board()
                     print(page_1)
 
                 except KeyboardInterrupt:
                     os.system('clear')
-                    
+                    score_board()
                     print(page_1)
                     continue
 
@@ -193,6 +271,7 @@ def android_debug():
             subprocess.call("adb start-server >> /dev/null", shell=True)
             print(f" Done.")
             t.sleep(2)
+            score_board()
             print(page_1)
 
         elif option == '9':
@@ -204,6 +283,7 @@ def android_debug():
                  
                 place_location = input(f"  Enter the path to save local.{COLORS.GNSL}[Example: {COLORS.REDL}</home/user/Downloads/test.mp4>{COLORS.GNSL}]{COLORS.ENDL}:")
                 subprocess.call(f"adb -s {ip} pull {file_location} {place_location}", shell=True)
+                score_board()
                 print(page_1)
 
         elif option == '10':
@@ -213,6 +293,7 @@ def android_debug():
                 subprocess.call(f"adb -s {ip} reboot ", shell=True)
                 print(f" Device has been rebooted. Wait 1 Min. ")
                 t.sleep(4)
+                score_board()
                 print(page_1)
 
         elif option == '11':
@@ -233,6 +314,7 @@ def android_debug():
                     subprocess.call(f'adb -s {ip} logcat ', shell=True)
 
                 except KeyboardInterrupt:
+                    score_board()
                     print(page_1)
                     continue
 
@@ -269,12 +351,12 @@ def android_debug():
                     "http://ip-api.com/json/" + ip + "?fields=status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,currency,isp,org,as,asname,reverse,mobile,proxy")
             resp = data.json()
             if resp["status"] == "fail":
-                print(f'{COLORS.WHSL} Дополнительная информация\n')
+                print(f'{COLORS.WHSL} Addictionaly Information/\n')
 
                 print(f"{COLORS.WHSL} Latitude:{COLORS.FIOL} " + str(resp["lat"]))
                 print(f"{COLORS.WHSL} Longitude:{COLORS.FIOL} " + str(resp["lon"]))
-                print(f"{COLORS.WHSL} Принадлежность к мобильному оператору:{COLORS.FIOL} " + str(resp["mobile"]))
-                print(f"{COLORS.GNSL} Прокси:{COLORS.FIOL} " + str(resp["proxy"]))
+                print(f"{COLORS.WHSL} Mobile Company:{COLORS.FIOL} " + str(resp["mobile"]))
+                print(f"{COLORS.GNSL} Proxy:{COLORS.FIOL} " + str(resp["proxy"]))
                 webbrowser.open(f"https://earth.google.com/web/search/{resp['lat']}+{resp['lon']}")
                 print(f"\n{COLORS.REDL} Status: " + resp["status"])
 
@@ -397,13 +479,8 @@ def android_debug():
                     continue
 
         elif option == "26":
-            import threading
-            def conn(ip_address):
-                IP_ADDR = ip_address.split(":")[0]
-                IP_PORT = ip_address.split(":")[1]
-                subprocess.call(f" adb connect {IP_ADDR}:{IP_PORT}", shell=True)
             try:
-                print(f" Example path: /home/Apashe/Desktop/test.txt\n")
+                print(f" Example path: /home/stalker/Desktop/adb/S-ADB/adb_clear.txt\n")
                 path_to_ips = input(f" Enter the path to your txt file with IP addresses:")
             except KeyboardInterrupt:
                 continue
@@ -491,8 +568,14 @@ def android_debug():
                 pipe = subprocess.Popen(["adb", "devices", "-l"], stdout=subprocess.PIPE)
                 title, error = pipe.communicate()
                 title = title.decode()
-                print(title)
-                ip = input(f" Emulator Address{COLORS.GNSL}{COLORS.ENDL}: ")
+                devices = str(title).split("\n")
+                for i, device in enumerate(devices):
+                    if device == '':
+                        continue
+                    if 'List of devices attached' in device:
+                        print(f'      {COLORS.GNSL}List of devices attached{COLORS.ENDL}')
+                    print(f'{COLORS.FIOL} [{i}]  {COLORS.OKNL} {device}{COLORS.ENDL}')
+                connect_to = input(" Connect to: ")
                 make_tmp(ip)
             except KeyboardInterrupt:
                 continue
@@ -516,7 +599,8 @@ def android_debug():
             subprocess.call(f'adb shell input keyevent 66', shell=True)
         elif option == '66':
             os.system('clear')
-            
+            print(banner.banner)
+            score_board()
             print(page_1)
 
         elif option == '77':
@@ -525,12 +609,18 @@ def android_debug():
             os.system('clear')
             
             print(f' Server ADB Poweroff.')
-        elif option == 'exit':
+        elif option == '0':
             os.system('clear')
             
             return 0
-
+        elif option == '99':
+            print('{COLORS.REDL}.')
+            os.system('clear')
+            print(banner.banner)
+            banner.about()
         else:
+            print(banner.banner)
+            score_board()
             print(page_1)
 
 if __name__ == "__main__":
