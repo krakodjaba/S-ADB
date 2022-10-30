@@ -11,7 +11,7 @@ class init:
     except Error as e:
         print(e)
     cursor = connection.cursor()
-    cursor.execute("CREATE TABLE IF NOT EXISTS devices(base_id INTEGER,ip TEXT NOT NULL,port INTEGER,info TEXT,last_conn TEXT,PRIMARY KEY(base_id AUTOINCREMENT));")
+    cursor.execute("CREATE TABLE IF NOT EXISTS devices(base_id INTEGER,ip TEXT NOT NULL UNIQUE,port INTEGER,info TEXT,last_conn TEXT,PRIMARY KEY(base_id AUTOINCREMENT));")
     
     def insert(ip: str, port: int, info:str, status:str):
         values = [("ip", ip),

@@ -119,10 +119,11 @@ def score_board():
     print(scoreboard)
 
 def android_debug():
-    #query.init
-    #query.init.view()
-    #query.init.insert('192.168.0.1', 5555, 'test', 'offline')
-    #query.init.insert('192.168.0.4', 5553, 'test2', 'online')
+    isExist = os.path.exists('result')
+    if not isExist:
+
+        # Create a new directory because it does not exist
+        os.makedirs('result')
     username = os.getlogin()
     global path_to_file
     ip = None
@@ -682,6 +683,8 @@ def android_debug():
             
             print(f' Server ADB Poweroff.')
         elif option == '0':
+            subprocess.call("adb disconnect >> /dev/null", shell=True)
+            subprocess.call("adb kill-server >> /dev/null", shell=True)
             os.system('clear')
             
             return 0
